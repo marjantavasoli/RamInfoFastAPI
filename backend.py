@@ -7,40 +7,39 @@ from database import RamInfo
 
 
 def get_ram_info():
-    if sys.platform == 'linux':
-        return get_linux_ram_info()
-    elif sys.platform == 'win32':
-        return get_windows_ram_info()
-    elif sys.platform == "macos":
-        return get_macos_ram_info()
-    else:
-        raise NotImplementedError()
-
-
-def get_linux_ram_info():
-    total, free, available = 0, 0, 0
-    import sys
-    print(sys.platform)
+    """
+    this method returns memory information of linux systems
+    :return:
+    total: int
+    free: int
+    used: int
+    """
+    total, free, buffers, cached = 0, 0, 0, 0
     with Path("/proc/meminfo").open() as fin:
         for line in fin.readlines():
             if line.startswith("MemTotal:"):
-                total = int(re.search(r"(?<=:)(.*)(?=kB)", line).group())
-
+                total = get_numbers_meminfo_line(line)
             elif line.startswith("MemFree:"):
-                free = int(re.search(r"(?<=:)(.*)(?=kB)", line).group())
-
-            elif line.startswith("MemAvailable:"):
-                available = int(re.search(r"(?<=:)(.*)(?=kB)", line).group())
-
-    return total, free, available - free
-
-
-def get_windows_ram_info():
-    raise NotImplementedError()
+                free = get_numbers_meminfo_line(line)
+            elif line.startswith("Buffers:"):
+                buffers = get_numbers_meminfo_line(line)
+            elif line.startswith("Cached:"):
+                cached = get_numbers_meminfo_line(line)
+    return total, free, total - free - buffers - cached
 
 
-def get_macos_ram_info():
-    raise NotImplementedError()
+def get_numbers_meminfo_line(line):
+    """
+    this method gets one line of /proc/meminfo and return the number included in MB
+    :param
+    line:
+    :return:
+    a number in MB
+    """
+    match = re.search(r"(?<=:)(.*)(?=kB)", line)
+    if match is not None:
+        return int(match.group()) // 1024
+    return 0
 
 
 def insert_ram_info(seconds=60):
@@ -57,4 +56,11 @@ def run_insert_ram_info(seconds=60):
 
 
 def get_last_ram_information(number: int):
+    """
+    this method get number of last minutes and return ram information for each minute
+    :param
+    number: int
+    :return:
+    a json including list of RamInfo objects
+    """
     return [ri.to_dict() for ri in RamInfo.get_last(int(number))]
