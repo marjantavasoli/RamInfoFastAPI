@@ -1,6 +1,6 @@
-from sqlmodel import Session, SQLModel, create_engine, Field, select
+from sqlmodel import Session, SQLModel, create_engine, Field, select, desc
 
-sqlite_url = "sqlite:///test.db"
+sqlite_url = "sqlite:///database.sqlite"
 engine = create_engine(sqlite_url)
 
 
@@ -25,9 +25,14 @@ class RamInfo(SQLModel, table=True):
             ram_info = session.exec(select(RamInfo)).all()
             return ram_info
 
+    @staticmethod
+    def get_last(n):
+        with Session(engine) as session:
+            ram_info = session.exec(select(RamInfo).order_by(desc(RamInfo.id)).limit(n)).all()
+            return ram_info
+
+    def to_dict(self):
+        return {'total': self.total, 'free': self.free, 'used': self.used}
+
 
 create_db_and_tables()
-
-
-d = RamInfo.get_all()
-a = 1
